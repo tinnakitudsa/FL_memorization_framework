@@ -3,3 +3,4 @@ elasticsearch.log
 
 # Log directory and everything inside it
 log/
+src/__pycache__/

@@ -14,7 +14,8 @@
 export TEMPLATE="qwen" #qwen, llama3, gpt2
 export FINETUNED_MODEL="/project/lt200415-cmlmfl/tudsa/fl/checkpoints/Qwen2.5-3B/summarization/arxiv/seed0/FedAvg/2/global"
 export OUTPUT_DIR="/project/lt200415-cmlmfl/tudsa/public_test/output"
-export EVAL_DATA_SIZE=64 # number for sampling or None for all
+export BATCH_SIZE=16
+export EVAL_DATA_SIZE=16 # number for sampling or None for all
 DATA_PATH=(
     /project/lt200415-cmlmfl/tudsa/public_test/test_data1.jsonl
     /project/lt200415-cmlmfl/tudsa/public_test/test_data2.jsonl
@@ -27,8 +28,6 @@ export PREFIX_LENGTH=30
 export DECODE_METHOD="top_k"
 export DECODE_NUMBER=40
 export MAX_GENERATED_LENGTH=2048
-
-source env_variable.env
 
 ######### Define Variables ###########
 export SEED_NAME=0
@@ -90,4 +89,5 @@ torchrun src/memorization.py \
                                                 --decode_method $DECODE_METHOD \
                                                 --decode_number $DECODE_NUMBER \
                                                 --max_generated_length $MAX_GENERATED_LENGTH \
-                                                --template $TEMPLATE
+                                                --template $TEMPLATE \
+                                                --batch_size $BATCH_SIZE \

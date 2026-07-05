@@ -1,4 +1,6 @@
-# FL_memorization_framework
+# Exploring Cross-Client Memorization of Training Data in Large Language Models for Federated Learning
+
+[![ACL Anthology](https://img.shields.io/badge/ACL%20Anthology-2026.acl--short.56-4b5cc4)](https://aclanthology.org/2026.acl-short.56/)
 
 ## Git clone
 
@@ -16,6 +18,19 @@ Python 3.10.18
 ```
 pip install -r requirement.txt --no-build-isolation
 ```
+
+Then
+
+```
+python3 -m spacy download en_core_web_sm
+python3 <<EOF
+import nltk
+nltk.download("stopwords")
+nltk.download("punkt_tab")
+EOF
+```
+
+You may need to change the name of punkt_tab if you get an error saying the file cannot be found.
 
 ### Elasticsearch
 
