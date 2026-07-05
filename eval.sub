@@ -1,0 +1,93 @@
+#!/bin/bash -l
+
+#SBATCH --mem=128GB        
+#SBATCH -N 1 -c 4		 
+#SBATCH --ntasks=1
+#SBATCH --gpus-per-task=1
+#SBATCH --cpus-per-task=4
+#SBATCH --partition=gpu
+#SBATCH -A lt200415 
+#SBATCH --time=24:0:0
+#SBATCH --job-name=eval
+#SBATCH --output=log/%j.out 
+
+export TEMPLATE="qwen" #qwen, llama3, gpt2
+export FINETUNED_MODEL="/project/lt200415-cmlmfl/tudsa/fl/checkpoints/Qwen2.5-3B/summarization/arxiv/seed0/FedAvg/2/global"
+export OUTPUT_DIR="/project/lt200415-cmlmfl/tudsa/public_test/output"
+export EVAL_DATA_SIZE=64 # number for sampling or None for all
+DATA_PATH=(
+    /project/lt200415-cmlmfl/tudsa/public_test/test_data1.jsonl
+    /project/lt200415-cmlmfl/tudsa/public_test/test_data2.jsonl
+    /project/lt200415-cmlmfl/tudsa/public_test/test_data3.jsonl
+)
+export ELASTICSEARCH="/project/lt200415-cmlmfl/tudsa/public_test/elasticsearch-8.16.1"
+
+
+export PREFIX_LENGTH=30
+export DECODE_METHOD="top_k"
+export DECODE_NUMBER=40
+export MAX_GENERATED_LENGTH=2048
+
+source env_variable.env
+
+######### Define Variables ###########
+export SEED_NAME=0
+export PLAGIARISM="/project/lt200415-cmlmfl/tudsa/public_test/roberta-base-mrpc"
+export PARAMETERS="src/settings.xml"
+
+export ELASTIC_PASSWORD="q123123."
+export FINGERPRINT="75AC016AA5B0429C4F11BE6BF2A1A94922015DFF22BD52FC361FBA60DE4448FA"
+
+
+######### Setup ###########
+export PYTHONUNBUFFERED=TRUE
+export HF_HOME="$SAVE_DIR/$CAHCE_DIR"
+export HF_METRICS_CACHE="$SAVE_DIR/$CAHCE_DIR/metrics/rouge/job_$SLURM_JOB_ID"
+
+echo "seed $SEED_NAME"
+
+echo "######################"
+echo "MODEL $FINETUNED_MODEL"
+echo "PREFIX_LENGTH $PREFIX_LENGTH"
+echo "DECODE_METHOD $DECODE_METHOD"
+echo "DECODE_NUMBER $DECODE_NUMBER"
+
+
+#### Elasticsearch PORT
+PORT_NAME=53000
+echo "Using port: $PORT_NAME"
+############# Elasticsearch ##############
+echo "init elasticsearch"
+echo $ELASTICSEARCH
+
+unset CLASSPATH
+$ELASTICSEARCH/bin/elasticsearch -E http.port=$PORT_NAME > elasticsearch.log 2>&1 &
+
+echo "Waiting for Elasticsearch to become available on port $PORT_NAME..."
+while true; do
+    if curl -k --silent "https://localhost:$PORT_NAME" >/dev/null 2>&1; then
+        echo "Elasticsearch is up!"
+        break
+    fi
+    echo "Still waiting..."
+    sleep 5
+done
+
+############# Measuring MEMORIZATION ##############
+echo "Start measuring memorization"
+torchrun src/memorization.py \
+                                                --seed $SEED_NAME \
+                                                --ft_data_paths "${DATA_PATH[@]}" \
+                                                --output_dir $OUTPUT_DIR \
+                                                --finetuned_model $FINETUNED_MODEL \
+                                                --IP "https://localhost:$PORT_NAME" \
+                                                --elastic_password $ELASTIC_PASSWORD \
+                                                --fingerprint $FINGERPRINT \
+                                                --parameters $PARAMETERS \
+                                                --plagiarism_model_path $PLAGIARISM \
+                                                --prefix_length $PREFIX_LENGTH \
+                                                --sampling_number_per_client $EVAL_DATA_SIZE \
+                                                --decode_method $DECODE_METHOD \
+                                                --decode_number $DECODE_NUMBER \
+                                                --max_generated_length $MAX_GENERATED_LENGTH \
+                                                --template $TEMPLATE

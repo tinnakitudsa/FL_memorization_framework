@@ -1,0 +1,5 @@
+# Elasticsearch log file
+elasticsearch.log
+
+# Log directory and everything inside it
+log/
